@@ -1,4 +1,5 @@
 ---
+import AdSlot from '../../components/AdSlot.astro';
 import AppBadges from '../../components/widgets/AppBadges.astro';
 import DonateCard from '../../components/widgets/DonateCard.astro';
 import JoinCard from '../../components/widgets/JoinCard.astro';
@@ -16,6 +17,7 @@ const { latest = true, exclude } = Astro.props;
 
 <aside class="sm-layout__side">
   {latest && <LatestList exclude={exclude} />}
+  <AdSlot place="sidebar" />
   <JoinCard />
   <MostRead exclude={exclude} />
   <QuoteCard />

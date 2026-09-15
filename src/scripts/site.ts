@@ -295,3 +295,96 @@ document.addEventListener('keydown', (e) => {
   if (box) box.focus();
   else location.href = url('search/');
 });
+
+/* --------------------------------------------- Facebook & Instagram posts */
+// Added inside a story with the admin panel's "Facebook वीडियो / पोस्ट" and "Instagram पोस्ट / रील" blocks.
+function socialFrame(src: string, title: string): HTMLIFrameElement {
+  const frame = document.createElement('iframe');
+  frame.src = src;
+  frame.title = title;
+  frame.loading = 'lazy';
+  frame.allow = 'autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share';
+  frame.allowFullscreen = true;
+  return frame;
+}
+document.querySelectorAll<HTMLElement>('.fb-embed[data-url]').forEach((el) => {
+  let link: URL;
+  try {
+    link = new URL((el.dataset.url ?? '').trim());
+  } catch {
+    return el.remove();
+  }
+  if (!/(^|\.)(facebook\.com|fb\.watch)$/.test(link.hostname)) return el.remove();
+  const video = link.hostname.endsWith('fb.watch') || link.searchParams.has('v') || /\/(videos?|watch|reel|share\/v|share\/r)(\/|$)/.test(link.pathname);
+  el.classList.add(video ? 'fb-embed--video' : 'fb-embed--post');
+  el.replaceChildren(
+    socialFrame(`https://www.facebook.com/plugins/${video ? 'video' : 'post'}.php?href=${encodeURIComponent(link.href)}&show_text=${video ? 'false' : 'true'}`, 'Facebook'),
+  );
+});
+document.querySelectorAll<HTMLElement>('.ig-embed[data-url]').forEach((el) => {
+  const match = (el.dataset.url ?? '').match(/instagram\.com\/(?:[\w.]+\/)?(p|reels?|tv)\/([\w-]+)/);
+  if (!match) return el.remove();
+  const kind = match[1].startsWith('reel') ? 'reel' : match[1];
+  el.replaceChildren(socialFrame(`https://www.instagram.com/${kind}/${match[2]}/embed/captioned/`, 'Instagram'));
+});
+
+/* ------------------------------------------------------ install as an app */
+// Android and desktop Chrome/Edge: the browser's own install prompt. iPhone/iPad: Safari has no install
+// button, so the bar explains "Share → Add to Home Screen". Hidden once installed, or for a week when closed.
+type InstallPrompt = Event & { prompt(): Promise<void> };
+const installBar = document.querySelector<HTMLElement>('[data-install-bar]');
+const installTriggers = document.querySelectorAll<HTMLElement>('[data-install-trigger]');
+const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let installPrompt: InstallPrompt | undefined;
+
+const installDismissed = () => {
+  try {
+    return Number(localStorage.getItem('install-dismissed')) > Date.now();
+  } catch {
+    return false;
+  }
+};
+function showInstall(mode: 'prompt' | 'ios' | 'help', force = false) {
+  if (!installBar || standalone || (!force && installDismissed())) return;
+  installBar.dataset.mode = mode;
+  installBar.hidden = false;
+}
+const hideInstall = () => {
+  if (installBar) installBar.hidden = true;
+};
+
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e as InstallPrompt;
+  installTriggers.forEach((b) => (b.hidden = false));
+  setTimeout(() => showInstall('prompt'), 3000);
+});
+addEventListener('appinstalled', () => {
+  installPrompt = undefined;
+  hideInstall();
+  installTriggers.forEach((b) => (b.hidden = true));
+});
+if (ios && !standalone) {
+  installTriggers.forEach((b) => (b.hidden = false));
+  // A real install button (if the browser offers one) always wins over the iPhone steps.
+  setTimeout(() => !installPrompt && showInstall('ios'), 5000);
+}
+
+document.addEventListener('click', async (e) => {
+  const target = e.target as Element;
+  if (target.closest?.('[data-install-close]')) {
+    hideInstall();
+    try {
+      localStorage.setItem('install-dismissed', String(Date.now() + 7 * 86_400_000));
+    } catch {}
+    return;
+  }
+  if (!target.closest?.('[data-install-go], [data-install-trigger]')) return;
+  drawer?.close();
+  if (installPrompt) {
+    hideInstall();
+    await installPrompt.prompt().catch(() => {});
+    installPrompt = undefined;
+  } else showInstall(ios ? 'ios' : 'help', true);
+});

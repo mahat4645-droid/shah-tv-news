@@ -1,4 +1,5 @@
 ---
+import AdSlot from '../../components/AdSlot.astro';
 import Avatar from '../../components/Avatar.astro';
 import CoverImage from '../../components/CoverImage.astro';
 import ShareBar from '../../components/ShareBar.astro';
@@ -83,6 +84,8 @@ const { data } = article;
           )
         )
       }
+
+      <AdSlot place="story" />
 
       <div class="prose">
         <Content />

@@ -258,6 +258,16 @@ collections:
             required: false
             hint: Optional. Without a logo, the site name is shown as a styled text logo.
           - { label: ब्रांड रंग (Brand colour), name: brand_color, widget: color }
+          - label: सोशल मीडिया — Facebook, Instagram, YouTube (Social media links)
+            name: social
+            widget: object
+            hint: अपने पेज / चैनल का पूरा लिंक डालें। खाली छोड़ने पर वह आइकन नहीं दिखेगा।
+            fields:
+              - { label: Facebook पेज, name: facebook, widget: string, required: false, hint: 'e.g. https://www.facebook.com/yourpage' }
+              - { label: Instagram, name: instagram, widget: string, required: false, hint: 'e.g. https://www.instagram.com/yourname' }
+              - { label: YouTube चैनल, name: youtube, widget: string, required: false, hint: 'e.g. https://www.youtube.com/@yourchannel' }
+              - { label: X (Twitter), name: x, widget: string, required: false }
+              - { label: WhatsApp, name: whatsapp, widget: string, required: false, hint: 'e.g. https://wa.me/919000000000' }
           - label: साइट का पता (Site URL)
             name: site_url
             widget: string
@@ -276,15 +286,6 @@ collections:
               - { label: Google Play URL, name: play_store, widget: string, required: false }
               - { label: App Store URL, name: app_store, widget: string, required: false }
               - { label: Android ऐप फ़ाइल (APK link), name: android_apk, widget: string, required: false, hint: 'Direct download, e.g. /download/app.apk — npm run new-client fills this in.' }
-          - label: सोशल लिंक (Social links)
-            name: social
-            widget: object
-            fields:
-              - { label: X (Twitter), name: x, widget: string, required: false }
-              - { label: Facebook, name: facebook, widget: string, required: false }
-              - { label: Instagram, name: instagram, widget: string, required: false }
-              - { label: YouTube, name: youtube, widget: string, required: false }
-              - { label: WhatsApp, name: whatsapp, widget: string, required: false }
           - label: आज का सुविचार (Thoughts of the day)
             name: quotes
             widget: list
@@ -299,3 +300,29 @@ collections:
               - { label: प्राप्तकर्ता नाम (Payee name), name: payee_name, widget: string, required: false }
               - { label: संदेश (Message), name: note, widget: text, required: false }
           - { label: फुटर नोट (Footer note), name: footer_note, widget: text, required: false }
+      - name: ads
+        label: विज्ञापन (Ads)
+        file: src/data/ads.json
+        fields:
+          - label: विज्ञापन (Ads)
+            name: ads
+            widget: list
+            required: false
+            summary: '{{fields.name}} · {{fields.placement}}'
+            hint: किसी भी आकार की फोटो डालें — बैनर, चौकोर या लंबी। एक ही जगह पर कई विज्ञापन एक के नीचे एक दिखेंगे।
+            fields:
+              - { label: नाम (सिर्फ़ आपके लिए), name: name, widget: string, hint: 'e.g. शर्मा ज्वेलर्स — दिवाली' }
+              - { label: चालू है (Active), name: active, widget: boolean, default: true, hint: 'बंद करने पर विज्ञापन छिप जाएगा, हटेगा नहीं।' }
+              - label: कहां दिखे (Placement)
+                name: placement
+                widget: select
+                default: top
+                options:
+                  - { label: 'सबसे ऊपर — हर पेज पर हेडर के नीचे', value: top }
+                  - { label: 'होम पेज — खबरों के बीच', value: home }
+                  - { label: 'हर खबर के अंदर — फोटो के नीचे', value: story }
+                  - { label: 'साइडबार — कंप्यूटर पर दाईं ओर, मोबाइल पर नीचे', value: sidebar }
+                  - { label: 'सबसे नीचे — फुटर के ऊपर', value: bottom }
+              - { label: विज्ञापन की फोटो (Ad image), name: image, widget: image, required: false, hint: 'कोई भी आकार। चौड़ाई अपने-आप फिट हो जाती है।' }
+              - { label: क्लिक करने पर कहां जाए (Link), name: link, widget: string, required: false, hint: 'e.g. https://wa.me/919000000000 या दुकान की वेबसाइट। खाली छोड़ सकते हैं।' }
+              - { label: विज्ञापन कोड — Google AdSense आदि (Ad code), name: code, widget: text, required: false, hint: 'फोटो की जगह किसी विज्ञापन कंपनी का HTML कोड। ज़्यादातर लोग इसे खाली छोड़ें।' }
