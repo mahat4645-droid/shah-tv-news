@@ -79,6 +79,7 @@ collections:
       - label: लेखक (Author)
         name: author
         widget: relation
+        default: javed-shah
         collection: authors
         value_field: '{{slug}}'
         search_fields: [name]
