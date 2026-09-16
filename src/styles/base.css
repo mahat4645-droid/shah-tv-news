@@ -1187,3 +1187,30 @@ figcaption {
 .sm-install[hidden] {
   display: none;
 }
+
+/* Extra story photos (components/StoryPhotos.astro): one row, up to three. */
+.story-photos {
+  display: grid;
+  gap: 14px;
+  margin: 1.6rem 0 0.4rem;
+}
+.story-photos figure {
+  margin: 0;
+}
+.story-photos .media {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.story-photos figcaption {
+  margin-top: 6px;
+  font: 500 12.5px/1.45 var(--font-ui, system-ui, sans-serif);
+  color: var(--muted, #6a6a70);
+}
+@media (min-width: 720px) {
+  .story-photos--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .story-photos--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

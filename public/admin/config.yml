@@ -93,6 +93,16 @@ collections:
         required: false
         hint: Describe the photo for readers using screen readers.
       - { label: कैप्शन / फोटो क्रेडिट (Caption), name: cover_caption, widget: string, required: false }
+      - label: और फोटो (More photos — 3 तक)
+        name: photos
+        widget: list
+        required: false
+        max: 3
+        summary: '{{fields.caption}}'
+        hint: मुख्य फोटो के अलावा 3 और फोटो जोड़ सकते हैं। ये खबर के नीचे एक लाइन में दिखेंगी।
+        fields:
+          - { label: फोटो (Photo), name: image, widget: image }
+          - { label: कैप्शन / फोटो क्रेडिट, name: caption, widget: string, required: false }
       - label: YouTube वीडियो
         name: youtube
         widget: string

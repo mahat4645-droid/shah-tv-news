@@ -1,6 +1,7 @@
 ---
 import AdSlot from '../../components/AdSlot.astro';
 import Avatar from '../../components/Avatar.astro';
+import StoryPhotos from '../../components/StoryPhotos.astro';
 import CoverImage from '../../components/CoverImage.astro';
 import ShareBar from '../../components/ShareBar.astro';
 import StoryCard from '../../components/StoryCard.astro';
@@ -90,6 +91,8 @@ const { data } = article;
       <div class="prose">
         <Content />
       </div>
+
+      <StoryPhotos article={article} />
     </div>
 
     <footer class="sm-story__foot">
