@@ -231,7 +231,7 @@
 
       <section class="step">
         <h2><span class="num">4</span>एडमिन में खबर भरें</h2>
-        <p>नई खबर का पेज खुलेगा — शीर्षक, सारांश, श्रेणी, टैग, URL और पूरी खबर अपने-आप भरी होगी।</p>
+        <p>नई खबर का पेज खुलेगा — शीर्षक, सारांश, श्रेणी, टैग और पूरी खबर अपने-आप भरी होगी।</p>
         <button type="button" class="primary big" id="fill" disabled>एडमिन में खबर भरें →</button>
         <p class="tip">उसके बाद बस मुख्य फोटो, YouTube / Facebook वीडियो जोड़ें, खबर एक बार पढ़ लें और <b>Save</b> दबाएं।<br />अगर कोई खाना खाली दिखे, तो ऊपर उस खाने के “कॉपी” बटन से कॉपी करके पेस्ट कर दें।</p>
       </section>
@@ -267,10 +267,9 @@
 - श्रेणी (category): नीचे की सूची में से सिर्फ़ एक id चुनो:
 ${list}
 - टैग (tags): 3–6 छोटे हिंदी टैग।
-- slug: खबर के लिए अंग्रेज़ी के 3–6 छोटे शब्द, छोटे अक्षरों में, बीच में "-" (जैसे: roorkee-road-accident)।
 
 जवाब सिर्फ़ इस JSON फ़ॉर्मेट में दो। JSON के अलावा कुछ भी मत लिखो:
-{"title": "...", "excerpt": "...", "category": "...", "tags": ["...", "..."], "slug": "...", "body": "पहला पैराग्राफ...\\n\\nदूसरा पैराग्राफ..."}
+{"title": "...", "excerpt": "...", "category": "...", "tags": ["...", "..."], "body": "पहला पैराग्राफ...\\n\\nदूसरा पैराग्राफ..."}
 
 खबर की जानकारी:
 `;
@@ -334,11 +333,6 @@ ${list}
           .map((t) => clean(String(t)).replace(/^#/, '').replace(/,/g, ' '))
           .filter(Boolean)
           .slice(0, 8);
-        const slug = clean(d.slug)
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-          .slice(0, 70);
         let category = clean(d.category);
         const known = categories.find((c) => c.id === category) || categories.find((c) => c.name === category);
         const warnings = [];
@@ -346,8 +340,7 @@ ${list}
           if (category) warnings.push(`श्रेणी "${category}" आपकी वेबसाइट में नहीं है — एडमिन में श्रेणी खुद चुनें।`);
           category = '';
         } else if (known) category = known.id;
-        if (!slug) warnings.push('अंग्रेज़ी URL (slug) नहीं मिला — एडमिन में खुद लिखें।');
-        return { title: clean(d.title), excerpt: clean(d.excerpt), category, categoryName: known?.name ?? '', tags, slug, body, warnings };
+        return { title: clean(d.title), excerpt: clean(d.excerpt), category, categoryName: known?.name ?? '', tags, body, warnings };
       }
 
       function showFields(s) {
@@ -357,7 +350,6 @@ ${list}
           ['सारांश', s.excerpt],
           ['श्रेणी', s.categoryName ? `${s.categoryName} (${s.category})` : ''],
           ['टैग', s.tags.join(', ')],
-          ['अंग्रेज़ी URL', s.slug],
           ['खबर', s.body],
         ];
         box.replaceChildren(
@@ -398,7 +390,7 @@ ${list}
       // Opens the admin's "new story" page with every field filled in (Sveltia CMS reads them from the address).
       $('fill').addEventListener('click', () => {
         if (!story) return;
-        const fields = { title: story.title, excerpt: story.excerpt, category: story.category, tags: story.tags.join(','), _slug: story.slug, body: story.body };
+        const fields = { title: story.title, excerpt: story.excerpt, category: story.category, tags: story.tags.join(','), body: story.body };
         const query = Object.entries(fields)
           .filter(([, v]) => v)
           .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
