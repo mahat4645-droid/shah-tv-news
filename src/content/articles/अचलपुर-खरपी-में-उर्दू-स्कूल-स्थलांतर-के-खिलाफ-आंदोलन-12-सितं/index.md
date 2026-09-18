@@ -4,7 +4,7 @@ excerpt: अमरावती जिले के अचलपुर ताल�
 category: tech
 author: javed-shah
 date: 2026-09-18T15:36:00Z
-cover: ''
+cover: 1004603042.webp
 cover_alt: धरना आंदोलन करते हुए - स्कूल की छात्राएं
 cover_caption: शाह उमर अब्दुल्ला
 photos: []
