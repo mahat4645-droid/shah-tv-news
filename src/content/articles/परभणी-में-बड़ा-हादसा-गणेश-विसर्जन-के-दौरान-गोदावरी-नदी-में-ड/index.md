@@ -8,7 +8,7 @@ cover: 1004666742.webp
 cover_alt: ''
 cover_caption: ''
 photos:
-  - image: 1004666751.webp
+  - image: 1004666768.webp
     caption: ''
 youtube: ''
 tags:
