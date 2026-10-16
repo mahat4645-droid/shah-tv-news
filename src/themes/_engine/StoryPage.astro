@@ -14,7 +14,7 @@ import { url } from '../../lib/url';
 import type { StoryPageProps } from '../../lib/story';
 
 type Props = StoryPageProps;
-const { article, Content, category, parentCategory, author, cover, videoId, pageUrl, ratio, related, shareImage, minutes } = Astro.props;
+const { article, Content, category, parentCategory, author, cover, videoId, fbVideo, pageUrl, ratio, related, shareImage, minutes } = Astro.props;
 const { data } = article;
 ---
 
@@ -69,6 +69,11 @@ const { data } = article;
             <YouTube id={videoId} title={data.title} poster={cover} eager sizes="(min-width: 1000px) 820px, 100vw" />
             {data.cover_caption && <figcaption>{data.cover_caption}</figcaption>}
           </figure>
+        ) : fbVideo ? (
+          <figure class="sm-story__media">
+            <div class="fb-embed" data-url={fbVideo} data-label={t('watchOnFacebook')} />
+            {data.cover_caption && <figcaption>{data.cover_caption}</figcaption>}
+          </figure>
         ) : (
           cover && (
             <figure class="sm-story__media">
@@ -93,6 +98,8 @@ const { data } = article;
       </div>
 
       <StoryPhotos article={article} />
+
+      <AdSlot place="after-story" />
     </div>
 
     <footer class="sm-story__foot">

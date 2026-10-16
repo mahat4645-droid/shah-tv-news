@@ -30,6 +30,8 @@ const articles = defineCollection({
       .nullish()
       .transform((v) => (v ?? []).filter((p) => p?.image).slice(0, 3)),
     youtube: optionalText,
+    // A Facebook video/reel link, used as the lead media when there is no YouTube link.
+    facebook: optionalText,
     tags: z
       .array(z.string())
       .nullish()

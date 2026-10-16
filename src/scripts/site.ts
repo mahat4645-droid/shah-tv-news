@@ -315,6 +315,19 @@ document.querySelectorAll<HTMLElement>('.fb-embed[data-url]').forEach((el) => {
     return el.remove();
   }
   if (!/(^|\.)(facebook\.com|fb\.watch)$/.test(link.hostname)) return el.remove();
+  // Share links (facebook.com/share/…) cannot be embedded, and only the build can resolve them
+  // (Facebook sends no CORS headers). Inside a story body, show a button to Facebook instead.
+  if (link.pathname.startsWith('/share/')) {
+    const a = document.createElement('a');
+    a.href = link.href;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.className = 'fb-embed__link';
+    a.textContent = el.dataset.label ?? 'Facebook पर वीडियो देखें';
+    el.classList.add('fb-embed--link');
+    el.replaceChildren(a);
+    return;
+  }
   const video = link.hostname.endsWith('fb.watch') || link.searchParams.has('v') || /\/(videos?|watch|reel|share\/v|share\/r)(\/|$)/.test(link.pathname);
   el.classList.add(video ? 'fb-embed--video' : 'fb-embed--post');
   el.replaceChildren(
@@ -388,3 +401,129 @@ document.addEventListener('click', async (e) => {
     installPrompt = undefined;
   } else showInstall(ios ? 'ios' : 'help', true);
 });
+
+/* ------------------------------------------------------- copy protection */
+// Settings → खबर कॉपी होने से रोकें. The CSS in base.css stops selection; this stops the rest.
+// It only makes casual copying harder — the page source and screenshots are still there.
+if (document.documentElement.hasAttribute('data-protect')) {
+  const editable = (el: EventTarget | null) => !!(el as Element)?.closest?.('input, textarea, select, [contenteditable]');
+  for (const type of ['contextmenu', 'copy', 'cut', 'dragstart', 'selectstart'] as const) {
+    document.addEventListener(type, (e) => {
+      if (!editable(e.target)) e.preventDefault();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && ['c', 'x', 'a', 'u', 's', 'p'].includes(key) && !editable(e.target)) e.preventDefault();
+  });
+}
+
+/* ------------------------------------------- live YouTube subscriber count */
+// widgets/FollowCard.astro shows the numbers typed in Settings. When a channel and an API key are
+// filled in, the live numbers replace them here (in the browser, so they stay fresh without a rebuild).
+// The answer is cached for six hours to keep well inside the free API quota.
+const followCard = document.querySelector<HTMLElement>('[data-follow][data-yt-channel][data-yt-key]');
+if (followCard) {
+  const channel = followCard.dataset.ytChannel!;
+  const key = followCard.dataset.ytKey!;
+  const cacheKey = `yt-stats:${channel}`;
+  const compact = (n: string) => Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n));
+
+  const paint = (stats: { subscriberCount?: string; viewCount?: string }) => {
+    const subs = followCard.querySelector<HTMLElement>('[data-count="youtube"]');
+    const views = followCard.querySelector<HTMLElement>('[data-count="views"]');
+    if (subs && stats.subscriberCount) subs.textContent = compact(stats.subscriberCount);
+    if (views && stats.viewCount) {
+      views.textContent = `${compact(stats.viewCount)} ${views.dataset.label ?? ''}`.trim();
+      views.hidden = false;
+    }
+  };
+
+  const cached = (() => {
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (!raw) return;
+      const { at, stats } = JSON.parse(raw);
+      return Date.now() - at < 6 * 3_600_000 ? stats : undefined;
+    } catch {
+      return;
+    }
+  })();
+
+  if (cached) paint(cached);
+  else {
+    const param = channel.startsWith('UC') ? `id=${encodeURIComponent(channel)}` : `forHandle=${encodeURIComponent(channel.replace(/^@/, ''))}`;
+    fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&${param}&key=${encodeURIComponent(key)}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((data) => {
+        const stats = data?.items?.[0]?.statistics;
+        if (!stats) return;
+        paint(stats);
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify({ at: Date.now(), stats }));
+        } catch {}
+      })
+      .catch(() => {}); // a wrong key or no network: the typed numbers stay on screen
+  }
+}
+
+/* ------------------------------------------------------------ ad slide show */
+// A place whose ads are marked "स्लाइड शो" (Settings → विज्ञापन) shows one ad at a time and
+// changes every 5 seconds. Without JavaScript they simply stay stacked, as before.
+document.querySelectorAll<HTMLElement>('.ad-slot[data-slide]').forEach((slot) => {
+  const slides = [...slot.querySelectorAll<HTMLElement>('.ad')];
+  if (slides.length < 2) return;
+  let current = 0;
+  slides.forEach((ad, i) => ad.classList.toggle('is-on', i === 0));
+  const tick = () => {
+    slides[current].classList.remove('is-on');
+    current = (current + 1) % slides.length;
+    slides[current].classList.add('is-on');
+  };
+  let timer = setInterval(tick, 5000);
+  // Pause while the reader is looking at something else, or hovering over the ad.
+  slot.addEventListener('mouseenter', () => clearInterval(timer));
+  slot.addEventListener('mouseleave', () => (timer = setInterval(tick, 5000)));
+  document.addEventListener('visibilitychange', () => {
+    clearInterval(timer);
+    if (!document.hidden) timer = setInterval(tick, 5000);
+  });
+});
+
+/* ------------------------------------------------------- subscribe popup */
+// Settings → फॉलो करने का पॉपअप. Shown once after a few seconds; closing it (or tapping a channel)
+// keeps it away for the number of days set in the admin. Nothing is stored anywhere but the browser.
+const popup = document.querySelector<HTMLElement>('[data-subscribe-popup]');
+if (popup) {
+  const KEY = 'subscribe-popup-until';
+  const days = Number(popup.dataset.days ?? 7);
+  const delay = Number(popup.dataset.delay ?? 6);
+  let snoozed = false;
+  try {
+    snoozed = Number(localStorage.getItem(KEY) ?? 0) > Date.now();
+  } catch {}
+
+  const close = () => {
+    popup.classList.remove('is-on');
+    setTimeout(() => (popup.hidden = true), 300);
+    try {
+      localStorage.setItem(KEY, String(Date.now() + days * 86_400_000));
+    } catch {}
+  };
+
+  if (!snoozed) {
+    setTimeout(() => {
+      popup.hidden = false;
+      requestAnimationFrame(() => popup.classList.add('is-on'));
+    }, Math.max(0, delay) * 1000);
+  }
+
+  popup.addEventListener('click', (e) => {
+    const target = e.target as Element;
+    if (target.closest('[data-subscribe-close]') || target === popup) close();
+    else if (target.closest('[data-subscribe-go]')) close();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !popup.hidden) close();
+  });
+}

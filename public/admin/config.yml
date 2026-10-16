@@ -28,14 +28,15 @@ media_libraries:
           width: 2400
           height: 2400
 
-# Web addresses are made from the Hindi title itself — nothing to type. "शहर में भारी बारिश" becomes
-# /news/शहर-में-भारी-बारिश/. encoding must stay "unicode" (ascii would throw every Hindi letter away) and
-# clean_accents must stay off (it strips nukta and halant marks, turning स्कूल into सकूल).
+# Web addresses for stories are the date and time: /news/20260919-1632/. Nothing to type, and the link
+# stays short when it is shared on WhatsApp. (A Hindi address was tried first, but a shared link turned
+# into 300 characters of %E0%A4… — see HANDOFF.md.) `timezone: local` keeps it on India time instead of
+# UTC; Sveltia adds "-1" by itself if two stories land in the same minute.
 slug:
-  encoding: unicode
+  encoding: ascii
   clean_accents: false
   sanitize_replacement: '-'
-  maxlength: 60
+  timezone: local
 
 collections:
   # ─────────────────────────────────────────────────────────── Stories
@@ -46,14 +47,15 @@ collections:
     description: News articles, video stories and features.
     folder: src/content/articles
     path: '{{slug}}/index'
-    slug: '{{title}}'
+    slug: '{{year}}{{month}}{{day}}-{{hour}}{{minute}}'
     media_folder: ''
     public_folder: ''
     create: true
     delete: true
     extension: md
     format: frontmatter
-    summary: '{{title}}'
+    # Sveltia's ternary needs single quotes inside, so this line is double-quoted YAML.
+    summary: "{{draft | ternary('🔴 ड्राफ्ट — ', '')}}{{title}}"
     sortable_fields:
       fields: [date, title, category]
       default:
@@ -111,6 +113,11 @@ collections:
         widget: string
         required: false
         hint: Paste any YouTube link. It becomes the lead video and the story appears in Videos.
+      - label: Facebook वीडियो / रील
+        name: facebook
+        widget: string
+        required: false
+        hint: Facebook वीडियो या रील का लिंक। YouTube खाली हो तो यही खबर के सबसे ऊपर चलेगा, और खबर वीडियो सेक्शन में भी दिखेगी।
       - { label: टैग (Tags), name: tags, widget: list, required: false }
       - label: फीचर्ड (Featured)
         name: featured
@@ -137,13 +144,14 @@ collections:
     description: Tap-through photo stories (AMP Web Stories, eligible for Google Discover).
     folder: src/content/webstories
     path: '{{slug}}/index'
-    slug: '{{title}}'
+    slug: '{{year}}{{month}}{{day}}-{{hour}}{{minute}}'
     media_folder: ''
     public_folder: ''
     create: true
     delete: true
     extension: md
     format: frontmatter
+    summary: "{{draft | ternary('🔴 ड्राफ्ट — ', '')}}{{title}}"
     sortable_fields:
       fields: [date, title]
       default:
@@ -184,7 +192,7 @@ collections:
     extension: json
     format: json
     identifier_field: name
-    slug: '{{name}}'
+    slug: '{{fields._slug}}'
     summary: '{{name}}'
     sortable_fields: [order, name]
     fields:
@@ -218,7 +226,7 @@ collections:
     extension: json
     format: json
     identifier_field: name
-    slug: '{{name}}'
+    slug: '{{fields._slug}}'
     media_folder: /public/uploads/authors
     public_folder: /uploads/authors
     fields:
@@ -239,7 +247,7 @@ collections:
     delete: true
     extension: md
     format: frontmatter
-    slug: '{{title}}'
+    slug: '{{fields._slug}}'
     media_folder: /public/uploads/pages
     public_folder: /uploads/pages
     fields:
@@ -282,14 +290,56 @@ collections:
               - { label: YouTube चैनल, name: youtube, widget: string, required: false, hint: 'e.g. https://www.youtube.com/@yourchannel' }
               - { label: X (Twitter), name: x, widget: string, required: false }
               - { label: WhatsApp, name: whatsapp, widget: string, required: false, hint: 'e.g. https://wa.me/919000000000' }
+          - label: फॉलोअर्स / सब्सक्राइबर दिखाएं (Follower counts)
+            name: follow
+            widget: object
+            collapsed: true
+            hint: साइट पर "हमसे जुड़ें" डिब्बा — Facebook, Instagram और YouTube की गिनती के साथ। ऊपर सोशल मीडिया के लिंक भरे होने ज़रूरी हैं।
+            fields:
+              - { label: यह डिब्बा दिखाएं, name: show, widget: boolean, default: true }
+              - { label: Facebook फॉलोअर्स, name: facebook, widget: string, required: false, hint: 'जैसे: 12.5K या 12,500 — खुद भरें' }
+              - { label: Instagram फॉलोअर्स, name: instagram, widget: string, required: false, hint: 'जैसे: 8.2K' }
+              - { label: YouTube सब्सक्राइबर, name: youtube, widget: string, required: false, hint: 'नीचे चैनल और API key भरने पर यह अपने-आप आ जाता है' }
+              - { label: YouTube व्यूज़, name: youtube_views, widget: string, required: false, hint: 'नीचे चैनल और API key भरने पर यह अपने-आप आ जाता है' }
+              - label: YouTube चैनल (अपने-आप गिनती के लिए)
+                name: youtube_channel
+                widget: string
+                required: false
+                hint: चैनल का हैंडल (@yourchannel) या चैनल ID (UC से शुरू)। खाली छोड़ेंगे तो ऊपर वाले नंबर ही दिखेंगे।
+              - label: YouTube API key
+                name: youtube_api_key
+                widget: string
+                required: false
+                hint: Google Cloud से मुफ़्त "YouTube Data API v3" key। यह key साइट के कोड में दिखती है, इसलिए Google में इसे अपनी वेबसाइट तक सीमित (HTTP referrer) ज़रूर करें।
+          - label: फॉलो करने का पॉपअप (Subscribe popup)
+            name: subscribe_popup
+            widget: object
+            collapsed: true
+            hint: वेबसाइट खुलते ही पाठक से YouTube, Facebook और Instagram फॉलो करने को कहा जाएगा। चैनलों के लिंक ऊपर "सोशल मीडिया" में भरे होने चाहिए।
+            fields:
+              - { label: पॉपअप दिखाएं, name: show, widget: boolean, default: false }
+              - { label: कितने सेकंड बाद दिखे, name: delay, widget: number, default: 6, value_type: int, min: 0, max: 60, hint: 'पेज खुलने के कितने सेकंड बाद — 5 से 8 ठीक रहता है।' }
+              - { label: बंद करने के बाद कितने दिन न दिखे, name: days, widget: number, default: 7, value_type: int, min: 1, max: 90, hint: 'पाठक एक बार बंद कर दे तो इतने दिन दोबारा नहीं दिखेगा।' }
+              - { label: पॉपअप का शीर्षक, name: title, widget: string, required: false, hint: 'खाली छोड़ेंगे तो "हमसे जुड़े रहिए" दिखेगा।' }
+              - { label: पॉपअप की लाइन, name: text, widget: string, required: false, hint: 'खाली छोड़ेंगे तो "ताज़ा खबरों के लिए हमारे चैनल फॉलो कीजिए।" दिखेगा।' }
           - label: साइट का पता (Site URL)
             name: site_url
             widget: string
             hint: Your live address, e.g. https://anantanewz.pages.dev — used for sharing links, RSS and the sitemap.
           - { label: Date format (locale), name: locale, widget: string, default: hi-IN, hint: 'e.g. hi-IN, en-IN, en-US' }
           - { label: Time zone, name: timezone, widget: string, default: Asia/Kolkata }
+          - label: खबर कॉपी होने से रोकें (Copy protection)
+            name: protect_content
+            widget: boolean
+            default: false
+            hint: चालू करने पर साइट से टेक्स्ट और फोटो कॉपी नहीं होंगे, और राइट-क्लिक बंद रहेगा। पूरी तरह रोकना मुमकिन नहीं — स्क्रीनशॉट फिर भी लिए जा सकते हैं।
           - { label: ब्रेकिंग टिकर दिखाएं (Show breaking ticker), name: show_ticker, widget: boolean, default: true }
           - { label: टिकर लेबल (Ticker label), name: ticker_label, widget: string, default: ब्रेकिंग }
+          - label: ब्रेकिंग पट्टी का रंग (Breaking strip colour)
+            name: ticker_color
+            widget: color
+            required: false
+            hint: खाली छोड़ेंगे तो पट्टी ब्रांड रंग में रहेगी। लाल (#d21f26) भरने पर पूरी पट्टी लाल और उस पर खबरें सफ़ेद दिखेंगी।
           - { label: WhatsApp चैनल लिंक, name: whatsapp_channel, widget: string, required: false }
           - { label: Telegram लिंक, name: telegram_channel, widget: string, required: false }
           - { label: पुरानी खबरें अपने-आप हटाएं — कितने दिन बाद (Auto-delete old stories after N days), name: auto_delete_days, widget: number, value_type: int, min: 0, required: false, hint: 'इतने दिन से पुरानी खबरें और वेब स्टोरीज़ हर रात अपने-आप हट जाएंगी (नई 20 खबरें हमेशा रहेंगी)। 0 = कभी न हटाएं।' }
@@ -335,8 +385,22 @@ collections:
                   - { label: 'सबसे ऊपर — हर पेज पर हेडर के नीचे', value: top }
                   - { label: 'होम पेज — खबरों के बीच', value: home }
                   - { label: 'हर खबर के अंदर — फोटो के नीचे', value: story }
+                  - { label: 'खबर के नीचे — पूरी खबर पढ़ने के बाद', value: after-story }
                   - { label: 'साइडबार — कंप्यूटर पर दाईं ओर, मोबाइल पर नीचे', value: sidebar }
                   - { label: 'सबसे नीचे — फुटर के ऊपर', value: bottom }
+              - label: क्रम (Order)
+                name: order
+                widget: number
+                required: false
+                value_type: int
+                min: 1
+                hint: एक ही जगह पर कई विज्ञापन हों तो कौन पहले दिखे — 1 सबसे ऊपर, फिर 2, 3। खाली छोड़ेंगे तो सबसे नीचे।
+              - label: स्लाइड शो में दिखाएं (Slide show)
+                name: slide
+                widget: boolean
+                default: false
+                required: false
+                hint: एक ही जगह के विज्ञापन एक के नीचे एक दिखने के बजाय बारी-बारी (हर 5 सेकंड में) बदलते रहेंगे। उस जगह के किसी एक विज्ञापन में चालू करना काफ़ी है।
               - { label: विज्ञापन की फोटो (Ad image), name: image, widget: image, required: false, hint: 'कोई भी आकार। चौड़ाई अपने-आप फिट हो जाती है।' }
               - { label: क्लिक करने पर कहां जाए (Link), name: link, widget: string, required: false, hint: 'e.g. https://wa.me/919000000000 या दुकान की वेबसाइट। खाली छोड़ सकते हैं।' }
               - { label: विज्ञापन कोड — Google AdSense आदि (Ad code), name: code, widget: text, required: false, hint: 'फोटो की जगह किसी विज्ञापन कंपनी का HTML कोड। ज़्यादातर लोग इसे खाली छोड़ें।' }

@@ -1,6 +1,7 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
 import settings from '../data/settings.json';
+import { facebookUrl } from './facebook';
 import { url } from './url';
 
 export { settings };
@@ -61,6 +62,12 @@ export function youtubeId(input?: string | null): string | undefined {
     return;
   }
 }
+
+/** True for stories that lead with a video (YouTube or Facebook) — they appear on the Videos page. */
+export const hasVideo = (data: { youtube?: string | null; facebook?: string | null }): boolean =>
+  !!youtubeId(data.youtube) || !!facebookUrl(data.facebook);
+
+export { facebookUrl, resolveFacebookUrl } from './facebook';
 
 /* ------------------------------------------------------------- taxonomies */
 
