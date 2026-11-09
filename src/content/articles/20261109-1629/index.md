@@ -7,13 +7,7 @@ date: 2026-11-09T10:59:00Z
 cover: 1004978299.webp
 cover_alt: ''
 cover_caption: ''
-photos:
-  - image: 1004978317.webp
-    caption: ''
-  - image: 1004978315.webp
-    caption: ''
-  - image: 1004978316.webp
-    caption: ''
+photos: []
 youtube: ''
 facebook: ''
 tags: []
